@@ -1,26 +1,46 @@
 #!/bin/bash
 
-echo "Menginstall Reviactyl Panel..."
+echo "=== INSTALL TEMA REVIACTLY ==="
 
-cd /var/www/pterodactyl || exit
+PANEL_DIR="/var/www/pterodactyl"
 
-echo "Download panel..."
+if [ ! -d "$PANEL_DIR" ]; then
+  echo "Folder panel tidak ditemukan!"
+  exit 1
+fi
+
+cd $PANEL_DIR
+
+echo "Backup panel lama..."
+cp -r /var/www/pterodactyl /var/www/pterodactyl_backup_$(date +%s)
+
+echo "Maintenance mode..."
+php artisan down || true
+
+echo "Download reviactyl..."
 curl -Lo panel.tar.gz https://github.com/reviactyl/panel/releases/latest/download/panel.tar.gz
-
-echo "Extract file..."
 tar -xzvf panel.tar.gz
 
-echo "Install dependency..."
+echo "Install dependency composer..."
 COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader
-
-echo "Update database..."
-php artisan migrate --seed --force
 
 echo "Clear cache..."
 php artisan view:clear
 php artisan config:clear
+php artisan cache:clear
+php artisan optimize:clear
+
+echo "Migrate database..."
+php artisan migrate --seed --force
+
+echo "Fix permission..."
+chown -R www-data:www-data /var/www/pterodactyl
+chmod -R 755 storage bootstrap/cache
+
+echo "Panel up..."
+php artisan up
 
 echo "Restart nginx..."
 systemctl restart nginx
 
-echo "Selesai! Reviactyl sudah aktif."
+echo "=== SELESAI INSTALL REVIACTYL ==="
