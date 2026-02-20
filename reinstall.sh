@@ -1,38 +1,31 @@
-#!/bin/bash
-
 cd /var/www/pterodactyl || exit
 
-echo "🔐 Backup database..."
-DB_NAME=$(grep DB_DATABASE .env | cut -d '=' -f2)
-DB_USER=$(grep DB_USERNAME .env | cut -d '=' -f2)
-DB_PASS=$(grep DB_PASSWORD .env | cut -d '=' -f2)
+echo "💣 Hapus semua file panel..."
+rm -rf .git
+rm -rf *
 
-mysqldump -u $DB_USER -p$DB_PASS $DB_NAME > /root/pterodactyl_backup_$(date +%F).sql
-
-echo "🔄 Reset panel (hapus tema)..."
-git fetch --all
-git reset --hard origin/main
+echo "⬇️ Clone ulang official panel..."
+git clone https://github.com/pterodactyl/panel.git .
+git checkout 1.12.1
 
 echo "📦 Install composer..."
 composer install --no-dev --optimize-autoloader
+
+echo "📦 Install node..."
+npm install --legacy-peer-deps
+npm run build
 
 echo "🧹 Clear cache..."
 php artisan view:clear
 php artisan config:clear
 php artisan cache:clear
 
-echo "📦 Install node modules..."
-rm -rf node_modules package-lock.json
-npm install --legacy-peer-deps
-npm run build
-
 echo "🔐 Fix permission..."
 chown -R www-data:www-data /var/www/pterodactyl
 chmod -R 755 storage bootstrap/cache
 
-echo "🚀 Restart service..."
 systemctl restart nginx
 systemctl restart php8.3-fpm
 
-echo "✅ Reinstall selesai!"
+echo "✅ PANEL SUDAH DEFAULT TOTAL"echo "✅ Reinstall selesai!"
 echo "📁 Backup database ada di /root/"
